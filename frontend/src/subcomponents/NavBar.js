@@ -135,13 +135,13 @@ const NavBar = () => {
                                                     <Link to="/admin/dashboard" className="text-black block px-4 py-2">Dashboard</Link>
                                                 </div>
                                                 <div className="py-1 bg-white" role="none">
-                                                    <Link to="/admin/productlist" className="text-black block px-4 py-2">Product List</Link>
+                                                    <Link to="/admin/products" className="text-black block px-4 py-2">Product List</Link>
                                                 </div>
                                                 <div className="py-1 bg-white" role="none">
-                                                    <Link to="/admin/orderlist" className="text-black block px-4 py-2">Orders</Link>
+                                                    <Link to="/admin/orders" className="text-black block px-4 py-2">Orders</Link>
                                                 </div>
                                                 <div className="py-1 bg-white" role="none">
-                                                    <Link to="/admin/userlist" className="text-black block px-4 py-2">Users</Link>
+                                                    <Link to="/admin/users" className="text-black block px-4 py-2">Users</Link>
                                                 </div>
                                             </div>
                                         </div>

@@ -3,9 +3,70 @@ import sql from 'mssql';
 import bcrypt from 'bcryptjs';
 import expressAsyncHandler from 'express-async-handler';
 import sqlConfig from '../constants/sqlConfig.js';
-import { generateToken, isAuth } from '../utils.js';
+import { generateToken, isAdmin, isAuth } from '../utils.js';
 
 const userRouter = express.Router();
+
+userRouter.get('/', isAuth, isAdmin, expressAsyncHandler(async (req, res) => {
+  sql.connect(sqlConfig, (err) => {
+    if (err) console.log(err);
+
+    const request = new sql.Request();
+    request.query('SELECT * FROM users', (err, recordset) => {
+      if (err) console.log(err);
+      const results = recordset.recordset;
+      res.send(results);
+    });
+  });
+}));
+
+userRouter.get('/:id', isAuth, isAdmin, expressAsyncHandler(async (req, res) => {
+  sql.connect(sqlConfig, (err) => {
+      if (err) console.log(err);
+
+      const request = new sql.Request();
+      request.query('SELECT * FROM users', (err, recordset) => {
+          if (err) console.log(err);
+          const users = recordset.recordset;
+          const user = users.find(x => x._id === parseInt(req.params.id));
+          if (!user) res.status(404).send({ message: 'User Not Found' });
+          res.send(user);
+      });
+  });
+}));
+
+userRouter.put('/:id', isAuth, isAdmin, expressAsyncHandler(async (req, res) => {
+  const userId = req.params.id;
+  const { body: { name, email, isAdmin } } = req;
+  const admin = isAdmin ? 1 : 0;
+  sql.connect(sqlConfig, (err) => {
+      if (err) console.log(err);
+
+      const request = new sql.Request();
+      request.query(`UPDATE users SET name='${name}',email='${email}',isAdmin=${admin} WHERE _id=${userId}`, (err, recordset) => {
+        request.query(`SELECT * FROM users WHERE _id=${userId}`, (err, recordset) => {
+          const user = recordset.recordset[0];
+          if (user) {
+            res.send({ message: 'User Updated', user });
+          } else {
+            res.status(404).send({ message: 'User Not Found' });
+          }
+        });
+      });
+  });
+}));
+
+userRouter.delete('/:id', isAuth, isAdmin, expressAsyncHandler(async (req, res) => {
+  const userId = req.params.id;
+  sql.connect(sqlConfig, (err) => {
+      if (err) console.log(err);
+      const request = new sql.Request();
+      request.query(`DELETE FROM users WHERE _id=${userId}`, (err, recordset) => {
+          if (err) console.log(err);
+          res.send({ message: 'User Deleted' });
+      });
+  });
+}));
 
 userRouter.post('/signin', expressAsyncHandler(async (req, res) => {
     sql.connect(sqlConfig, (err) => {

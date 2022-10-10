@@ -24,6 +24,14 @@ const reducer = (state, action) => {
             return { ...state, loadingPay: false };
         case 'PAY_RESET':
             return { ...state, loadingPay: false, successPay: false };
+        case 'DELIVER_REQUEST':
+            return { ...state, loadingDeliver: true };
+        case 'DELIVER_SUCCESS':
+            return { ...state, loadingDeliver: false, successDeliver: true };
+        case 'DELIVER_FAIL':
+            return { ...state, loadingDeliver: false };
+        case 'DELIVER_RESET':
+            return { ...state, loadingDeliver: false, successDeliver: false };
         default:
             return state;
     }
@@ -35,7 +43,7 @@ const OrderScreen = () => {
     const navigate = useNavigate();
     const { state } = useContext(Store);
     const { userInfo } = state;
-    const [{ loading, error, order, successPay, loadingPay }, dispatch] = useReducer(reducer, {
+    const [{ loading, error, order, successPay, loadingPay, loadingDeliver, successDeliver }, dispatch] = useReducer(reducer, {
         loading: true,
         order: {},
         error: '',
@@ -106,11 +114,10 @@ const OrderScreen = () => {
             }
         };
         if (!userInfo) return navigate('/login');
-        if (!order._id || successPay || (order._id && order._id !== orderId)) {
+        if (!order._id || successPay || successDeliver || (order._id && order._id !== orderId)) {
             fetchOrder();
-            if (successPay) {
-                dispatch({ type: 'PAY_RESET' });
-            }
+            if (successPay) dispatch({ type: 'PAY_RESET' });
+            if (successDeliver) dispatch({ type: 'DELIVER_RESET' });
         } else {
             const loadPaypalScript = async () => {
                 const response = await fetch(`/api/keys/paypal`, {
@@ -131,7 +138,29 @@ const OrderScreen = () => {
             };
             loadPaypalScript();
         }
-    }, [order, userInfo, orderId, navigate, paypalDispatch, successPay]);
+    }, [order, userInfo, orderId, navigate, paypalDispatch, successPay, successDeliver]);
+
+    const deliverOrderHandler = async () => {
+        try {
+            dispatch({ type: 'DELIVER_REQUEST' });
+            const response = await fetch(`/api/orders/${order._id}/deliver`, {
+                method: 'PUT',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userInfo.token}`
+                },
+                body: JSON.stringify({})
+            });
+            const data = await response.json();
+            dispatch({ type: 'DELIVER_SUCCESS', payload: data });
+            toast.success('Order is delivered');
+        } catch(err) {
+            toast.error(err);
+            dispatch({ type: 'DELIVER_FAIL' });
+        }
+    };
+
     return loading ? (<LoadingBox noMarginOrPadding={false}></LoadingBox>) : error ? (<ErrorBox message={error}></ErrorBox>) : (
         <div className="mx-auto w-6/12">
             <Helmet>
@@ -203,6 +232,12 @@ const OrderScreen = () => {
                                             </div>
                                         )}
                                         {loadingPay && <LoadingBox noMarginOrPadding></LoadingBox>}
+                                    </li>
+                                )}
+                                {userInfo.isAdmin && order.isPaid && !order.isDelivered && (
+                                    <li className="grid grid-cols-1 flex">
+                                        {loadingDeliver && <loadingBox noMarginOrPadding></loadingBox>}
+                                        <button type="button" onClick={deliverOrderHandler} className="mb-3 text-black bg-yellow-400 hover:bg-yellow-500 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-yellow-600 dark:hover:bg-yellow-700 dark:focus:ring-yellow-800">Deliver Order</button>
                                     </li>
                                 )}
                             </ul>
